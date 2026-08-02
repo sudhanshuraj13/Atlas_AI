@@ -17,9 +17,12 @@ build/
 .env.*.local
 *.pem
 *.key
+
+# Agent / Tooling files
 .cursorrules
-.agents
+.agents/
 .neon
+skills-lock.json
 
 # Preserve example environment file
 !.env.example
