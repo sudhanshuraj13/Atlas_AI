@@ -18,11 +18,8 @@ build/
 *.pem
 *.key
 .cursorrules
-.agents/
-.neon/*
-.cursor/*
-.cursor/skills/*
-.cursor/skills.json
+.agents
+.neon
 
 # Preserve example environment file
 !.env.example
