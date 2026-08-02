@@ -99,7 +99,7 @@ export class CalendarService {
     // Default High-Fidelity Mock Schedule (Law 12 Fallback)
     return [
       {
-        title: "Q3 Portfolio Review with Nvidia Investors",
+        title: "Portfolio Review with Nvidia Investors",
         time: "14:00",
         ticker: "NVDA",
         description: "Review GPU allocation and datacenter margins",
