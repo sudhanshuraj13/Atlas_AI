@@ -113,7 +113,7 @@ export async function generateDailyBriefing(
 
   // Combine watchlist with any tickers mentioned in calendar events
   const combinedTickersSet = new Set<string>(
-    userWatchlist.map((s) => s.trim().toUpperCase())
+    userWatchlist.map((s: string) => s.trim().toUpperCase())
   );
   for (const e of events) {
     if (e.ticker) {
