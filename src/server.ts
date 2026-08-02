@@ -32,6 +32,22 @@ export function startHealthServer(
 
   server.listen(port, () => {
     console.log(`🌐 Health server active on port ${port} (Endpoints: GET /health, GET /)`);
+
+    // Automatic keep-alive self-ping if running on Render/Cloud
+    const appUrl = process.env.RENDER_EXTERNAL_URL || process.env.APP_URL;
+    if (appUrl) {
+      console.log(`📡 Keep-alive self-ping configured for: ${appUrl}/health (every 10m)`);
+      setInterval(async () => {
+        try {
+          const res = await fetch(`${appUrl}/health`);
+          if (res.ok) {
+            console.log(`💚 Keep-alive self-ping successful: [${res.status}]`);
+          }
+        } catch (err: any) {
+          console.warn(`⚠️ Keep-alive self-ping failed:`, err?.message || String(err));
+        }
+      }, 10 * 60 * 1000); // Every 10 minutes
+    }
   });
 
   return server;
