@@ -17,6 +17,8 @@ build/
 .env.*.local
 *.pem
 *.key
+.cursorrules
+.agents/
 
 # Preserve example environment file
 !.env.example
