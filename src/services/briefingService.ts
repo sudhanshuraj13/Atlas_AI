@@ -34,6 +34,7 @@ Synthesize the user's daily meeting schedule with live market intelligence for a
 2. Items: For each meeting, provide the time, title, stock ticker (if applicable), and 1 sentence of sharp market context/talking points before stepping into the room.
 3. Executive Advice: 1 tactical sentence to maximize effectiveness across today's agenda.
 
+CRITICAL: Only use the meetings provided in the prompt. NEVER invent, fabricate, or hallucinate meetings that are not explicitly listed. If no meetings are provided, say the calendar is clear.
 Do NOT output any HTML or Markdown formatting — output only clean text.`;
 
 /**
@@ -210,6 +211,29 @@ export async function generateAgendaBriefing(
   userId?: string
 ): Promise<DailyBriefingResult> {
   const events = await CalendarService.getUpcomingEvents(userId);
+
+  // If no events, return a clean "no meetings" response immediately
+  // instead of sending empty data to the LLM (which may hallucinate)
+  if (events.length === 0) {
+    const today = new Date().toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "short",
+      day: "numeric",
+    });
+
+    const html = [
+      `<b>📅 Today's Agenda — ${today}</b>`,
+      "",
+      "Your calendar is clear for today. No upcoming meetings found.",
+      "",
+      "💡 <i>Connect your Google Calendar with /login to see real events.</i>",
+    ].join("\n");
+
+    const keyboard = new InlineKeyboard()
+      .text("🔄 Refresh Agenda", "action:agenda:refresh");
+
+    return { html, keyboard };
+  }
 
   // Fetch live market data for any meeting-related tickers
   const meetingTickers = Array.from(
