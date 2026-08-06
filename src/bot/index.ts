@@ -3,6 +3,7 @@ import { config } from "../config/index.js";
 import { registerOnboardingHandlers } from "./handlers/onboarding.js";
 import { registerBriefingHandlers } from "./handlers/briefing.js";
 import { registerSettingsHandlers } from "./handlers/settings.js";
+import { registerAuthHandlers } from "./handlers/auth.js";
 import { registerMessageHandlers } from "./handlers/message.js";
 
 /**
@@ -14,6 +15,7 @@ export async function setBotCommands(bot: Bot): Promise<void> {
     await bot.api.setMyCommands([
       { command: "briefing", description: "📊 Daily market intelligence digest" },
       { command: "agenda", description: "📅 Today's meetings & company prep" },
+      { command: "login", description: "🔐 Connect your Google Calendar" },
       { command: "settings", description: "⚙️ Watchlist, industry & briefing time" },
       { command: "start", description: "👋 Welcome & onboarding setup" },
     ]);
@@ -36,7 +38,8 @@ export function createBot(): Bot {
   registerOnboardingHandlers(bot);
   registerBriefingHandlers(bot);
   registerSettingsHandlers(bot);
-  registerMessageHandlers(bot);
+  registerAuthHandlers(bot);
+  registerMessageHandlers(bot); // Must be last — catches all non-command messages
 
   return bot;
 }

@@ -1,6 +1,6 @@
 import { createBot, setBotCommands } from "./bot/index.js";
 import { initBriefingCron } from "./jobs/briefingCron.js";
-import { startHealthServer } from "./server.js";
+import { startServer } from "./server.js";
 
 // Global Unhandled Error Boundary Shields (Law 14)
 process.on("uncaughtException", (err: Error) => {
@@ -12,11 +12,11 @@ process.on("unhandledRejection", (reason: unknown, promise: Promise<unknown>) =>
 });
 
 async function main(): Promise<void> {
-  // 1. Start HTTP Health Check Server for 24/7 Cloud Hosting (Law 13)
-  const healthServer = startHealthServer();
-
-  // 2. Initialize Telegram Bot Instance
+  // 1. Initialize Telegram Bot Instance
   const bot = createBot();
+
+  // 2. Start Express Server (health check, OAuth, webhooks) — needs bot for notifications
+  const server = startServer(bot);
 
   // 3. Initialize background cron scheduler for proactive briefings (Law 9)
   const cronTask = initBriefingCron(bot);
@@ -24,7 +24,7 @@ async function main(): Promise<void> {
   // 4. Graceful shutdown handler
   const shutdown = () => {
     console.log("🛑 Shutting down Atlas AI services...");
-    healthServer.close();
+    server.close();
     cronTask.stop();
     bot.stop();
     process.exit(0);

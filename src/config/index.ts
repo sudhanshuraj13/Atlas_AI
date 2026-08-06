@@ -11,6 +11,12 @@ const envSchema = z.object({
   OPENAI_API_KEY: z.string().optional(),
   GOOGLE_GENERATIVE_AI_API_KEY: z.string().optional(),
   GROQ_API_KEY: z.string().optional(),
+
+  // Google OAuth2 & Calendar webhook
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  GOOGLE_REDIRECT_URI: z.string().optional(),
+  APP_URL: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

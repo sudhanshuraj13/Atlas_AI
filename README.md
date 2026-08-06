@@ -4,7 +4,7 @@
 Atlas AI is an autonomous, production-ready Telegram assistant engineered with TypeScript and Node.js that delivers real-time financial market intelligence, portfolio tracking, and executive productivity tooling. The system integrates Yahoo Finance for live market telemetry, synthesizes Google Calendar schedules for pre-meeting stock prep, and triggers personalized morning briefings via a cron-driven scheduler (`node-cron`). All AI-generated briefings and conversational insights are validated and formatted under strict Telegram HTML parsing constraints to ensure seamless, error-free UI delivery.
 
 Live Bot: @Atlas_newer_Bot
-Demo Video: [Link to Video Walkthrough]
+Demo Video:// [Link to Video Walkthrough]
 
 ## 2. Core Features
 *   **Proactive Cron-Driven Briefings**: Automated background worker (`node-cron`) checks user preferences every minute and dispatches personalized morning portfolio digests and macro insights at the user's scheduled UTC time.
