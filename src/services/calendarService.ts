@@ -109,21 +109,8 @@ export class CalendarService {
       }
     }
 
-    // Default High-Fidelity Mock Schedule (Law 12 Fallback)
-    return [
-      {
-        title: "Portfolio Review with Nvidia Investors",
-        time: "14:00",
-        ticker: "NVDA",
-        description: "Review GPU allocation and datacenter margins",
-      },
-      {
-        title: "Product Strategy Sync",
-        time: "16:30",
-        ticker: "AAPL",
-        description: "Discuss Apple Intelligence ecosystem timeline",
-      },
-    ];
+    // No credentials configured — return empty (no fake data)
+    return [];
   }
 
   /** Fetch events using an authenticated OAuth2 client. */
