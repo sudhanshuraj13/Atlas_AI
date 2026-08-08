@@ -69,3 +69,11 @@ coverage/
 # Prisma / Local DB
 *.sqlite
 *.db
+
+# Python Microservice (ai_service/)
+ai_service/__pycache__/
+ai_service/**/__pycache__/
+ai_service/.env
+ai_service/venv/
+ai_service/.venv/
+*.pyc

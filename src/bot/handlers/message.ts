@@ -3,6 +3,58 @@ import { getOrCreateUser, saveMessage, getRecentMessages } from "../../db/userRe
 import { sendSafeTelegramMessage } from "../../utils/telegram.js";
 import { processUserMessage } from "../../ai/orchestrator.js";
 import { formatFinancialSummary, formatChatResponse } from "../../utils/formatters.js";
+import {
+  orchestrate as aiServiceOrchestrate,
+  isAiServiceError,
+  type OrchestrateContext,
+} from "../../services/aiService.js";
+import { CalendarService } from "../../services/calendarService.js";
+
+/** Whether the Python AI microservice gateway is enabled. */
+const AI_SERVICE_ENABLED = Boolean(process.env["AI_SERVICE_URL"]?.trim());
+
+/**
+ * Route a user message through the Python multi-agent microservice.
+ * Returns the HTML response, or null if the service is unavailable (triggers fallback).
+ */
+async function routeViaPythonService(
+  userId: string,
+  telegramId: bigint,
+  prompt: string,
+  userPreferences: Record<string, unknown>
+): Promise<string | null> {
+  try {
+    // 1. Fetch calendar events from Google Calendar via Node.js OAuth layer
+    const calendarEvents = await CalendarService.getUpcomingEvents(telegramId);
+
+    // 2. Assemble context payload
+    const context: OrchestrateContext = {
+      calendar_events: calendarEvents.map((e) => ({
+        title: e.title,
+        time: e.time,
+        ticker: e.ticker ?? null,
+        description: e.description ?? null,
+      })),
+      user_preferences: userPreferences,
+    };
+
+    // 3. Call Python FastAPI multi-agent engine
+    const result = await aiServiceOrchestrate(userId, prompt, context);
+
+    console.log(
+      `🐍 [AI Service] intent=${result.intent_detected}, agents=[${result.agents_executed.join(", ")}]`
+    );
+
+    return result.reply_text;
+  } catch (err) {
+    if (isAiServiceError(err)) {
+      console.warn(`⚠️ [AI Service] ${err.code}: ${err.message} — falling back to local orchestrator`);
+    } else {
+      console.warn("⚠️ [AI Service] Unreachable — falling back to local orchestrator:", err);
+    }
+    return null;
+  }
+}
 
 /** Register the plain-text message handler. */
 export function registerMessageHandlers(bot: Bot): void {
@@ -21,18 +73,40 @@ export function registerMessageHandlers(bot: Bot): void {
         from.username
       );
 
-      // Fetch conversation memory window before saving new message (Law 10)
-      const recentHistory = await getRecentMessages(user.id, 6);
-
       // Persist the incoming user message
       const userText = ctx.message.text;
       await saveMessage(user.id, "user", userText);
 
-      // Process through AI orchestrator with history context (Law 4 & Law 10)
-      const result = await processUserMessage(userText, recentHistory);
-
-      // Format and send response based on result type (Law 8: separate formatter)
       let responseHtml: string;
+
+      // ── Gateway Path: Python AI Microservice ──────────────────────
+      if (AI_SERVICE_ENABLED) {
+        const preferences: Record<string, unknown> = {};
+        if (user.preference) {
+          preferences["watchlist"] = user.preference.watchlist;
+          preferences["industries"] = user.preference.industries;
+          preferences["briefingTime"] = user.preference.briefingTime;
+        }
+
+        const pythonResult = await routeViaPythonService(
+          user.id,
+          BigInt(from.id),
+          userText,
+          preferences
+        );
+
+        if (pythonResult) {
+          responseHtml = pythonResult;
+          await sendSafeTelegramMessage(ctx, responseHtml);
+          await saveMessage(user.id, "assistant", responseHtml);
+          return;
+        }
+        // If Python service failed, fall through to local orchestrator
+      }
+
+      // ── Fallback Path: Local In-Process Orchestrator ──────────────
+      const recentHistory = await getRecentMessages(user.id, 6);
+      const result = await processUserMessage(userText, recentHistory);
 
       if (result.type === "financial_summary") {
         responseHtml = formatFinancialSummary(result.data, result.ticker);
@@ -41,12 +115,10 @@ export function registerMessageHandlers(bot: Bot): void {
         responseHtml = formatChatResponse(result.data);
         await sendSafeTelegramMessage(ctx, responseHtml);
       } else {
-        // Error result — send the error message directly
         responseHtml = result.message;
         await sendSafeTelegramMessage(ctx, responseHtml);
       }
 
-      // Persist the assistant response
       await saveMessage(user.id, "assistant", responseHtml);
     } catch {
       // Global error boundary — ensures user always gets a response
@@ -76,11 +148,37 @@ export function registerMessageHandlers(bot: Bot): void {
         from.username
       );
 
-      const recentHistory = await getRecentMessages(user.id, 6);
       await saveMessage(user.id, "user", ticker);
-      const result = await processUserMessage(ticker, recentHistory);
 
       let responseHtml: string;
+
+      // ── Gateway Path: Python AI Microservice ──────────────────────
+      if (AI_SERVICE_ENABLED) {
+        const preferences: Record<string, unknown> = {};
+        if (user.preference) {
+          preferences["watchlist"] = user.preference.watchlist;
+          preferences["industries"] = user.preference.industries;
+        }
+
+        const pythonResult = await routeViaPythonService(
+          user.id,
+          BigInt(from.id),
+          ticker,
+          preferences
+        );
+
+        if (pythonResult) {
+          responseHtml = pythonResult;
+          await sendSafeTelegramMessage(ctx, responseHtml);
+          await saveMessage(user.id, "assistant", responseHtml);
+          return;
+        }
+      }
+
+      // ── Fallback Path: Local In-Process Orchestrator ──────────────
+      const recentHistory = await getRecentMessages(user.id, 6);
+      const result = await processUserMessage(ticker, recentHistory);
+
       if (result.type === "financial_summary") {
         responseHtml = formatFinancialSummary(result.data, result.ticker);
         await sendSafeTelegramMessage(ctx, responseHtml);

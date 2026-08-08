@@ -17,6 +17,9 @@ const envSchema = z.object({
   GOOGLE_CLIENT_SECRET: z.string().optional(),
   GOOGLE_REDIRECT_URI: z.string().optional(),
   APP_URL: z.string().optional(),
+
+  // Python AI Microservice (Phase 2)
+  AI_SERVICE_URL: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
